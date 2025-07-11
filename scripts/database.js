@@ -1,31 +1,41 @@
 const { Pool } = require('pg');
 
-// Configuração específica para PostgreSQL 17 com cliente 15
-const pool = new Pool({
-  user: 'buzzynotes_user',
-  host: 'localhost',
-  database: 'buzzynotes', 
-  password: 'buzzy2025', // Nova senha mais simples
-  port: 5433,
-  // Configurações específicas para resolver incompatibilidade de versão
-  ssl: false,
-  connectionTimeoutMillis: 10000,
-  idleTimeoutMillis: 30000,
-  max: 20, // máximo de conexões
-  // Força uso de autenticação mais simples
-  options: '--application_name=buzzynotes_app'
-});
+// Configuração que funciona tanto em desenvolvimento quanto produção
+const pool = new Pool(
+  // Se DATABASE_URL existe (produção), use ela
+  process.env.DATABASE_URL ? {
+    connectionString: process.env.DATABASE_URL,
+    ssl: {
+      rejectUnauthorized: false // Necessário para Railway/Heroku
+    }
+  } : {
+    // Senão, use configuração local (desenvolvimento)
+    user: 'buzzynotes_user',
+    host: 'localhost',
+    database: 'buzzynotes',
+    password: 'buzzy2025',
+    port: 5433,
+    ssl: false
+  }
+);
 
 // Função para testar conexão com diagnóstico detalhado
 async function testConnection() {
   let client;
   try {
     console.log('🔗 Attempting database connection...');
-    console.log('📊 Connection config:');
-    console.log('   - Host: localhost');
-    console.log('   - Port: 5433'); 
-    console.log('   - Database: buzzynotes');
-    console.log('   - User: buzzynotes_user');
+    
+    if (process.env.DATABASE_URL) {
+      console.log('📊 Using DATABASE_URL for production');
+      console.log('🔗 Connection string detected (Railway/Heroku mode)');
+    } else {
+      console.log('📊 Connection config:');
+      console.log('   - Host: localhost');
+      console.log('   - Port: 5433'); 
+      console.log('   - Database: buzzynotes');
+      console.log('   - User: buzzynotes_user');
+      console.log('🔧 Local development mode');
+    }
     
     client = await pool.connect();
     
@@ -44,6 +54,15 @@ async function testConnection() {
     console.error('❌ Connection test failed:', error.message);
     console.error('🔍 Error code:', error.code);
     console.error('🔍 Error detail:', error.detail || 'No additional details');
+    
+    // Log adicional para debug
+    if (process.env.DATABASE_URL) {
+      console.error('🔍 DATABASE_URL length:', process.env.DATABASE_URL.length);
+      console.error('🔍 DATABASE_URL starts with:', process.env.DATABASE_URL.substring(0, 20) + '...');
+    } else {
+      console.error('🔍 DATABASE_URL not found in environment');
+    }
+    
     return false;
   } finally {
     if (client) {
