@@ -1,0 +1,14 @@
+{
+  "watch": ["*.js", "scripts/*.js"],
+  "ignore": [
+    "node_modules/*",
+    ".env",
+    "*.log",
+    "*.md",
+    ".git",
+    "package-lock.json"
+  ],
+  "delay": 2000,
+  "verbose": false
+}
+
