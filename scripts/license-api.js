@@ -525,14 +525,47 @@ function setupLicenseRoutes(app) {
       const isDirectAccess = !referrer || referrer === '';
       
       // ⚠️ BLOQUEAR ACESSO SUSPEITO
-      if (isDirectAccess && !req.query.debug) {
-        return res.redirect('https://buy.stripe.com/dRm7sKbtebir7d80P'); // Redireciona para pagamento
+      if (isDirectAccess && !req.query.debug && !req.query.bypass) {
+        return res.send(`
+          <!DOCTYPE html>
+          <html>
+          <head>
+              <title>Payment Required - BuzzyNotes</title>
+              <meta http-equiv="refresh" content="3;url=https://buy.stripe.com/dRm7sKbtebir7d80P">
+              <style>
+                  body { font-family: Arial, sans-serif; text-align: center; margin: 50px auto; max-width: 500px; padding: 20px; }
+                  .warning { background: #fff3cd; padding: 20px; border-radius: 8px; border: 2px solid #ffc107; }
+                  .button { display: inline-block; background: #007cba; color: white; padding: 15px 30px; text-decoration: none; border-radius: 5px; margin: 20px 0; }
+              </style>
+          </head>
+          <body>
+              <div class="warning">
+                  <h2>🔒 Payment Required</h2>
+                  <p>This page is only accessible after purchasing BuzzyNotes Premium.</p>
+                  <p>You will be redirected to the payment page in 3 seconds...</p>
+                  <a href="https://buy.stripe.com/dRm7sKbtebir7d80P" class="button">Pay Now - $9/month</a>
+              </div>
+              <script>
+                  setTimeout(() => {
+                      window.location.href = 'https://buy.stripe.com/dRm7sKbtebir7d80P';
+                  }, 3000);
+              </script>
+          </body>
+          </html>
+        `);
       }
       
       // ✅ LOG DE ACESSO (para monitoramento)
       console.log(`🔍 License page accessed - Referrer: ${referrer.substring(0, 50)}...`);
       
       // 🎯 PÁGINA PROTEGIDA
+      const bypassWarning = req.query.bypass ? `
+        <div class="debug-warning" style="background: #f8d7da; padding: 15px; border-radius: 8px; margin-bottom: 20px; text-align: center; color: #721c24;">
+          <h3>🚨 BYPASS MODE ACTIVE</h3>
+          <p>Security protection bypassed for testing purposes only!</p>
+        </div>
+      ` : '';
+
       res.send(`
         <!DOCTYPE html>
         <html>
@@ -551,6 +584,8 @@ function setupLicenseRoutes(app) {
             </style>
         </head>
         <body>
+            ${bypassWarning}
+            
             <div class="success-header">
                 <h2>🎉 Payment Successful!</h2>
                 <p>Thank you for purchasing BuzzyNotes Premium!</p>
@@ -648,7 +683,33 @@ function setupLicenseRoutes(app) {
       
     } catch (error) {
       console.error('Error in /generate route:', error);
-      res.redirect('https://buy.stripe.com/dRm7sKbtebir7d80P'); // Fallback para pagamento
+      res.send(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Error - BuzzyNotes</title>
+            <meta http-equiv="refresh" content="5;url=https://buy.stripe.com/dRm7sKbtebir7d80P">
+            <style>
+                body { font-family: Arial, sans-serif; text-align: center; margin: 50px auto; max-width: 500px; padding: 20px; }
+                .error { background: #f8d7da; padding: 20px; border-radius: 8px; border: 2px solid #dc3545; }
+                .button { display: inline-block; background: #007cba; color: white; padding: 15px 30px; text-decoration: none; border-radius: 5px; margin: 20px 0; }
+            </style>
+        </head>
+        <body>
+            <div class="error">
+                <h2>❌ Something went wrong</h2>
+                <p>There was an error loading the license page.</p>
+                <p>You will be redirected to the payment page in 5 seconds...</p>
+                <a href="https://buy.stripe.com/dRm7sKbtebir7d80P" class="button">Go to Payment Page</a>
+            </div>
+            <script>
+                setTimeout(() => {
+                    window.location.href = 'https://buy.stripe.com/dRm7sKbtebir7d80P';
+                }, 5000);
+            </script>
+        </body>
+        </html>
+      `);
     }
   });
 
@@ -712,6 +773,105 @@ function setupLicenseRoutes(app) {
                                   <p><strong>Email:</strong> \${email}</p>
                                   <p><strong>Status:</strong> Test Premium</p>
                                   <p><em>⚠️ This is a test license for development purposes only.</em></p>
+                              </div>
+                          \`;
+                      } else {
+                          document.getElementById('result').innerHTML = \`
+                              <div class="result" style="background: #ffe7e7;">
+                                  <h4>❌ Error:</h4>
+                                  <p>\${data.error}</p>
+                              </div>
+                          \`;
+                      }
+                  } catch (error) {
+                      document.getElementById('result').innerHTML = \`
+                          <div class="result" style="background: #ffe7e7;">
+                              <h4>❌ Network Error:</h4>
+                              <p>Failed to generate license. Please try again.</p>
+                          </div>
+                      \`;
+                  }
+              }
+          </script>
+      </body>
+      </html>
+    `);
+  });
+
+  // 🔍 GET /health - Verificação de saúde do servidor
+  app.get('/health', (req, res) => {
+    res.json({
+      status: 'OK',
+      timestamp: new Date().toISOString(),
+      server: 'BuzzyNotes API Server',
+      version: '1.0.0',
+      environment: process.env.NODE_ENV || 'development'
+    });
+  });
+
+  // 🧪 GET /test-generate - Versão temporária sem proteção (para debug)
+  app.get('/test-generate', (req, res) => {
+    res.send(`
+      <!DOCTYPE html>
+      <html>
+      <head>
+          <title>🧪 Test Generate Page - No Protection</title>
+          <style>
+              body { font-family: Arial, sans-serif; max-width: 500px; margin: 50px auto; padding: 20px; }
+              .form { background: #f0f8ff; padding: 20px; border-radius: 8px; border: 2px solid #0066cc; }
+              .debug { background: #fff3cd; padding: 15px; border-radius: 8px; margin-bottom: 20px; }
+              input { width: 100%; padding: 10px; margin: 10px 0; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box; }
+              button { background: #0066cc; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; width: 100%; }
+              .result { background: #e7f3ff; padding: 15px; margin: 15px 0; border-radius: 4px; }
+              .license { font-family: monospace; font-size: 18px; font-weight: bold; color: #333; }
+          </style>
+      </head>
+      <body>
+          <div class="debug">
+              <h3>🧪 DEBUG MODE</h3>
+              <p><strong>URL:</strong> ${req.protocol}://${req.get('host')}${req.originalUrl}</p>
+              <p><strong>Referrer:</strong> ${req.get('Referrer') || req.get('Referer') || 'None'}</p>
+              <p><strong>User-Agent:</strong> ${(req.get('User-Agent') || '').substring(0, 100)}...</p>
+              <p><strong>Time:</strong> ${new Date().toISOString()}</p>
+          </div>
+          
+          <h1>🧪 Test License Generator</h1>
+          <div class="form">
+              <h3>This is a test version without referrer protection:</h3>
+              <input type="email" id="email" placeholder="test@email.com" required>
+              <button onclick="generateLicense()">Generate Test License</button>
+              <div id="result"></div>
+              
+              <p style="color: #666; font-size: 12px; margin-top: 20px;">
+                ⚠️ This is for debugging only. The real /generate page has security protection.
+              </p>
+          </div>
+          
+          <script>
+              async function generateLicense() {
+                  const email = document.getElementById('email').value;
+                  if (!email) {
+                      alert('Please enter your email');
+                      return;
+                  }
+                  
+                  try {
+                      const response = await fetch('/api/request-license', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ email })
+                      });
+                      
+                      const data = await response.json();
+                      
+                      if (data.success) {
+                          document.getElementById('result').innerHTML = \`
+                              <div class="result">
+                                  <h4>✅ Test License Generated:</h4>
+                                  <div class="license">\${data.licenseKey}</div>
+                                  <p><strong>Email:</strong> \${email}</p>
+                                  <p><strong>Status:</strong> Test Premium</p>
+                                  <p><em>⚠️ This is a test license for debugging purposes.</em></p>
                               </div>
                           \`;
                       } else {
