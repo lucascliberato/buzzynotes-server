@@ -506,28 +506,184 @@ function setupLicenseRoutes(app) {
     }
   });
 
-  // GET /generate - Página para gerar licença
+  // GET /generate - Página para gerar licença (PROTEGIDA)
   app.get('/generate', (req, res) => {
+    try {
+      // 🛡️ VERIFICAÇÃO DE SEGURANÇA
+      const referrer = req.get('Referrer') || req.get('Referer') || '';
+      const userAgent = req.get('User-Agent') || '';
+      
+      // Verificar se veio do Stripe ou é acesso válido
+      const validReferrers = [
+        'stripe.com',
+        'checkout.stripe.com',
+        'buy.stripe.com',
+        'js.stripe.com'
+      ];
+      
+      const isFromStripe = validReferrers.some(domain => referrer.includes(domain));
+      const isDirectAccess = !referrer || referrer === '';
+      
+      // ⚠️ BLOQUEAR ACESSO SUSPEITO
+      if (isDirectAccess && !req.query.debug) {
+        return res.redirect('https://buy.stripe.com/dRm7sKbtebir7d80P'); // Redireciona para pagamento
+      }
+      
+      // ✅ LOG DE ACESSO (para monitoramento)
+      console.log(`🔍 License page accessed - Referrer: ${referrer.substring(0, 50)}...`);
+      
+      // 🎯 PÁGINA PROTEGIDA
+      res.send(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Generate BuzzyNotes License</title>
+            <meta name="robots" content="noindex, nofollow">
+            <style>
+                body { font-family: Arial, sans-serif; max-width: 500px; margin: 50px auto; padding: 20px; }
+                .form { background: #f5f5f5; padding: 20px; border-radius: 8px; }
+                .success-header { background: #e7f3ff; padding: 15px; border-radius: 8px; margin-bottom: 20px; text-align: center; }
+                input { width: 100%; padding: 10px; margin: 10px 0; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box; }
+                button { background: #007cba; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; width: 100%; }
+                .result { background: #e7f3ff; padding: 15px; margin: 15px 0; border-radius: 4px; }
+                .license { font-family: monospace; font-size: 18px; font-weight: bold; color: #333; }
+                .security-note { font-size: 12px; color: #666; margin-top: 20px; }
+            </style>
+        </head>
+        <body>
+            <div class="success-header">
+                <h2>🎉 Payment Successful!</h2>
+                <p>Thank you for purchasing BuzzyNotes Premium!</p>
+            </div>
+            
+            <h1>🚀 Get Your License Key</h1>
+            <div class="form">
+                <h3>Enter your email to generate your premium license:</h3>
+                <input type="email" id="email" placeholder="your@email.com" required>
+                <button onclick="generateLicense()">Generate My License</button>
+                <div id="result"></div>
+                
+                <div class="security-note">
+                    🔒 This page is only accessible after completing payment through Stripe.
+                    Your license will be tied to the email address you provide.
+                </div>
+            </div>
+            
+            <script>
+                // 🔒 PROTEÇÃO ADICIONAL NO FRONT-END
+                let attempts = 0;
+                const maxAttempts = 3;
+                
+                async function generateLicense() {
+                    const email = document.getElementById('email').value;
+                    if (!email) {
+                        alert('Please enter your email');
+                        return;
+                    }
+                    
+                    // Limite de tentativas
+                    if (attempts >= maxAttempts) {
+                        document.getElementById('result').innerHTML = \`
+                            <div class="result" style="background: #ffe7e7;">
+                                <h4>⚠️ Too many attempts</h4>
+                                <p>Please contact support if you need assistance.</p>
+                            </div>
+                        \`;
+                        return;
+                    }
+                    
+                    attempts++;
+                    
+                    try {
+                        const response = await fetch('/api/request-license', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ email })
+                        });
+                        
+                        const data = await response.json();
+                        
+                        if (data.success) {
+                            document.getElementById('result').innerHTML = \`
+                                <div class="result">
+                                    <h4>✅ Your Premium License:</h4>
+                                    <div class="license">\${data.licenseKey}</div>
+                                    <p><strong>Email:</strong> \${email}</p>
+                                    <p><strong>Status:</strong> Active Premium</p>
+                                    <hr>
+                                    <p><strong>Next Steps:</strong></p>
+                                    <ol>
+                                        <li>Copy your license key above</li>
+                                        <li>Open BuzzyNotes extension (Ctrl+Shift+U)</li>
+                                        <li>Click "Already have a license?"</li>
+                                        <li>Enter your license and email</li>
+                                        <li>Enjoy unlimited notes and folders!</li>
+                                    </ol>
+                                    <p style="color: #666; font-size: 14px;">
+                                        💡 Save this license key safely. You can use it to activate premium on any device.
+                                    </p>
+                                </div>
+                            \`;
+                        } else {
+                            document.getElementById('result').innerHTML = \`
+                                <div class="result" style="background: #ffe7e7;">
+                                    <h4>❌ Error:</h4>
+                                    <p>\${data.error}</p>
+                                </div>
+                            \`;
+                        }
+                    } catch (error) {
+                        document.getElementById('result').innerHTML = \`
+                            <div class="result" style="background: #ffe7e7;">
+                                <h4>❌ Network Error:</h4>
+                                <p>Failed to generate license. Please try again.</p>
+                            </div>
+                        \`;
+                    }
+                }
+            </script>
+        </body>
+        </html>
+      `);
+      
+    } catch (error) {
+      console.error('Error in /generate route:', error);
+      res.redirect('https://buy.stripe.com/dRm7sKbtebir7d80P'); // Fallback para pagamento
+    }
+  });
+
+  // 🧪 GET /dev/generate - Página de teste (só para desenvolvimento)
+  app.get('/dev/generate', (req, res) => {
+    if (process.env.NODE_ENV === 'production') {
+      return res.status(404).send('Not found');
+    }
+    
     res.send(`
       <!DOCTYPE html>
       <html>
       <head>
-          <title>Generate BuzzyNotes License</title>
+          <title>🧪 BuzzyNotes License Generator - TEST MODE</title>
           <style>
               body { font-family: Arial, sans-serif; max-width: 500px; margin: 50px auto; padding: 20px; }
-              .form { background: #f5f5f5; padding: 20px; border-radius: 8px; }
+              .form { background: #fff3cd; padding: 20px; border-radius: 8px; border: 2px solid #ffc107; }
+              .warning { background: #f8d7da; padding: 15px; border-radius: 8px; margin-bottom: 20px; text-align: center; color: #721c24; }
               input { width: 100%; padding: 10px; margin: 10px 0; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box; }
-              button { background: #007cba; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; width: 100%; }
+              button { background: #ffc107; color: #000; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; width: 100%; }
               .result { background: #e7f3ff; padding: 15px; margin: 15px 0; border-radius: 4px; }
               .license { font-family: monospace; font-size: 18px; font-weight: bold; color: #333; }
           </style>
       </head>
       <body>
-          <h1>🚀 BuzzyNotes License Generator</h1>
+          <div class="warning">
+              <h2>⚠️ TEST MODE ONLY</h2>
+              <p>This is for development testing only!</p>
+          </div>
+          
+          <h1>🧪 BuzzyNotes License Generator - TEST</h1>
           <div class="form">
               <h3>Enter your email to get your premium license:</h3>
-              <input type="email" id="email" placeholder="your@email.com" required>
-              <button onclick="generateLicense()">Generate My License</button>
+              <input type="email" id="email" placeholder="test@email.com" required>
+              <button onclick="generateLicense()">Generate Test License</button>
               <div id="result"></div>
           </div>
           
@@ -551,19 +707,11 @@ function setupLicenseRoutes(app) {
                       if (data.success) {
                           document.getElementById('result').innerHTML = \`
                               <div class="result">
-                                  <h4>✅ Your Premium License:</h4>
+                                  <h4>✅ Test License Generated:</h4>
                                   <div class="license">\${data.licenseKey}</div>
                                   <p><strong>Email:</strong> \${email}</p>
-                                  <p><strong>Status:</strong> Active Premium</p>
-                                  <hr>
-                                  <p><strong>Next Steps:</strong></p>
-                                  <ol>
-                                      <li>Copy your license key above</li>
-                                      <li>Open BuzzyNotes extension (Ctrl+Shift+U)</li>
-                                      <li>Click "Already have a license?"</li>
-                                      <li>Enter your license and email</li>
-                                      <li>Enjoy unlimited notes and folders!</li>
-                                  </ol>
+                                  <p><strong>Status:</strong> Test Premium</p>
+                                  <p><em>⚠️ This is a test license for development purposes only.</em></p>
                               </div>
                           \`;
                       } else {
