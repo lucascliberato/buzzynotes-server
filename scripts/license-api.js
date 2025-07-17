@@ -531,7 +531,7 @@ function setupLicenseRoutes(app) {
           <html>
           <head>
               <title>Payment Required - BuzzyNotes</title>
-              <meta http-equiv="refresh" content="3;url=https://buy.stripe.com/dRm7sKbtebir7d80P">
+              <meta http-equiv="refresh" content="3;url=https://buy.stripe.com/dRm7sKbtebir7d80Pj4c801">
               <style>
                   body { font-family: Arial, sans-serif; text-align: center; margin: 50px auto; max-width: 500px; padding: 20px; }
                   .warning { background: #fff3cd; padding: 20px; border-radius: 8px; border: 2px solid #ffc107; }
@@ -543,11 +543,11 @@ function setupLicenseRoutes(app) {
                   <h2>🔒 Payment Required</h2>
                   <p>This page is only accessible after purchasing BuzzyNotes Premium.</p>
                   <p>You will be redirected to the payment page in 3 seconds...</p>
-                  <a href="https://buy.stripe.com/dRm7sKbtebir7d80P" class="button">Pay Now - $9/month</a>
+                  <a href="https://buy.stripe.com/dRm7sKbtebir7d80Pj4c801" class="button">Pay Now - $9/month</a>
               </div>
               <script>
                   setTimeout(() => {
-                      window.location.href = 'https://buy.stripe.com/dRm7sKbtebir7d80P';
+                      window.location.href = 'https://buy.stripe.com/dRm7sKbtebir7d80Pj4c801';
                   }, 3000);
               </script>
           </body>
@@ -688,7 +688,7 @@ function setupLicenseRoutes(app) {
         <html>
         <head>
             <title>Error - BuzzyNotes</title>
-            <meta http-equiv="refresh" content="5;url=https://buy.stripe.com/dRm7sKbtebir7d80P">
+            <meta http-equiv="refresh" content="5;url=https://buy.stripe.com/dRm7sKbtebir7d80Pj4c801">
             <style>
                 body { font-family: Arial, sans-serif; text-align: center; margin: 50px auto; max-width: 500px; padding: 20px; }
                 .error { background: #f8d7da; padding: 20px; border-radius: 8px; border: 2px solid #dc3545; }
@@ -700,11 +700,11 @@ function setupLicenseRoutes(app) {
                 <h2>❌ Something went wrong</h2>
                 <p>There was an error loading the license page.</p>
                 <p>You will be redirected to the payment page in 5 seconds...</p>
-                <a href="https://buy.stripe.com/dRm7sKbtebir7d80P" class="button">Go to Payment Page</a>
+                <a href="https://buy.stripe.com/dRm7sKbtebir7d80Pj4c801" class="button">Go to Payment Page</a>
             </div>
             <script>
                 setTimeout(() => {
-                    window.location.href = 'https://buy.stripe.com/dRm7sKbtebir7d80P';
+                    window.location.href = 'https://buy.stripe.com/dRm7sKbtebir7d80Pj4c801';
                 }, 5000);
             </script>
         </body>
